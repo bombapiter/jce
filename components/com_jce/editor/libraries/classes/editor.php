@@ -72,8 +72,28 @@ class WFEditor extends JObject
         return $version;
     }
 
-    private function getProfileVars($plugin = "")
+    public function getContextId($options = array())
     {
+        $app = JFactory::getApplication();
+
+        $profile = $this->getProfile($options);
+
+        if (empty($profile)) {
+            return false;
+        }
+
+        // get token
+        $token = WFToken::getToken();
+        // create context hash
+        $context = md5($token . serialize($profile) . random_bytes(16));
+        // assign profile id to user session
+        $app->setUserState($context, $profile->id);
+
+        return $context;
+    }
+
+    private function getProfileContext($options = array())
+    {        
         $app = JFactory::getApplication();
         $user = JFactory::getUser();
         $option = $this->getComponentOption();
@@ -107,22 +127,24 @@ class WFEditor extends JObject
             $groups = array($user->gid);
         }
 
-        return array(
-            "option" => $option,
-            "area" => $area,
-            "device" => $device,
-            "groups" => $groups,
-            "plugin" => $plugin,
+        return array_merge(
+            $options, array(
+                "option" => $option,
+                "area" => $area,
+                "device" => $device,
+                "groups" => $groups,
+            )
         );
     }
 
     /**
      * Get an appropriate editor profile
      */
-    public function getProfile($plugin = "")
+    public function getProfile($options = array())
     {
         // get the profile variables for the current context
-        $options = $this->getProfileVars($plugin);
+        $options = $this->getProfileContext((array) $options);
+
         // create a signature to store
         $signature = serialize($options);
 
@@ -135,11 +157,11 @@ class WFEditor extends JObject
             $id = 0;
 
             // get profile hash
-            $hash = JRequest::getVar('context', '', 'ALNUM');
+            $context = JRequest::getVar('context', '', 'ALNUM');
 
             // look for profile id in session using profile hash
-            if ($hash) {
-                $id = $app->getUserState($hash);
+            if ($context) {
+                $id = $app->getUserState($context);
             }
 
             $query = $db->getQuery(true);
@@ -208,7 +230,7 @@ class WFEditor extends JObject
                     continue;
                 }
 
-                if ($options["plugin"] && in_array($options["plugin"], explode(",", $item->plugins)) === false) {
+                if (!empty($options["plugin"]) && in_array($options["plugin"], explode(",", $item->plugins)) === false) {
                     continue;
                 }
 
@@ -219,7 +241,7 @@ class WFEditor extends JObject
                     // set match flag to skip profile
                     $match = false;
 
-                    foreach($customs as $key => $values) {                        
+                    foreach ($customs as $key => $values) {
                         // get from key from request
                         $input = JRequest::getVar($key);
 

@@ -97,12 +97,7 @@ class WFModelEditor extends WFModelBase
         $this->profile = $wf->getProfile();
 
         if ($this->profile) {
-            // get token
-            $token = WFToken::getToken();
-            // create context hash
-            $this->context = md5($token . serialize($this->profile));
-            // assign profile id to user session
-            $app->setUserState($this->context, $this->profile->id);
+            $this->context = $wf->getContextId();
         }
     }
 

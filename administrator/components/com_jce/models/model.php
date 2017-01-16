@@ -118,16 +118,12 @@ class WFModel extends WFModelBase
         $wf = WFEditor::getInstance();
         $app = JFactory::getApplication();
 
-        $profile = $wf->getProfile('browser');
+        $context = $wf->getContextId(array('plugin' => 'browser'));
 
         // check the current user is in a profile
-        if ($profile) {
+        if ($context) {
             // get token
             $token = WFToken::getToken();
-            // create context hash
-            $context = md5($token . serialize($profile));
-            // assign profile id to user session
-            $app->setUserState($context, $profile->id);
 
             $url = 'index.php?option=com_jce&view=editor&layout=plugin&plugin=browser&standalone=1&' . $token . '=1&context=' . $context;
 
